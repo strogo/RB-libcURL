@@ -19,20 +19,24 @@ Inherits libcURL.EasyHandle
 	#tag EndMethod
 
 	#tag Method, Flags = &h0
-		Sub AddCCRecipient(BlindCC As Boolean, ParamArray Recipients() As String)
-		  If Not BlindCC Then
-		    For i As Integer = 0 To UBound(Recipients)
-		      If mCCRecipients.IndexOf(Recipients(i)) > -1 Then Continue
-		      mCCRecipients.Append(Recipients(i))
-		      Call mRecipList.Append("<" + Recipients(i) + ">")
-		    Next
-		  Else
-		    For i As Integer = 0 To UBound(Recipients)
-		      If mBCCRecipients.IndexOf(Recipients(i)) > -1 Then Continue
-		      mBCCRecipients.Append(Recipients(i))
-		      Call mRecipList.Append("<" + Recipients(i) + ">")
-		    Next
-		  End If
+		Sub AddBCCRecipient(ParamArray Recipients() As String)
+		  For i As Integer = 0 To UBound(Recipients)
+		    If mBCCRecipients.IndexOf(Recipients(i)) > -1 Then Continue
+		    mBCCRecipients.Append(Recipients(i))
+		    Call mRecipList.Append("<" + Recipients(i) + ">")
+		  Next
+		  
+		  If Not Me.SetOption(libcURL.Opts.MAIL_RCPT, mRecipList) Then Raise New cURLException(Me)
+		End Sub
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Sub AddCCRecipient(ParamArray Recipients() As String)
+		  For i As Integer = 0 To UBound(Recipients)
+		    If mCCRecipients.IndexOf(Recipients(i)) > -1 Then Continue
+		    mCCRecipients.Append(Recipients(i))
+		    Call mRecipList.Append("<" + Recipients(i) + ">")
+		  Next
 		  
 		  If Not Me.SetOption(libcURL.Opts.MAIL_RCPT, mRecipList) Then Raise New cURLException(Me)
 		End Sub
@@ -41,6 +45,7 @@ Inherits libcURL.EasyHandle
 	#tag Method, Flags = &h0
 		Sub AddRecipient(ParamArray Recipients() As String)
 		  For i As Integer = 0 To UBound(Recipients)
+		    If mRecipients.IndexOf(Recipients(i)) > -1 Then Continue
 		    mRecipients.Append(Recipients(i))
 		    Call mRecipList.Append("<" + Recipients(i) + ">")
 		  Next
@@ -72,55 +77,73 @@ Inherits libcURL.EasyHandle
 
 	#tag Method, Flags = &h21
 		Private Sub QueueMessage()
-		  Dim cc, bcc, recip As String
-		  If True Then ' for folding only
-		    For i As Integer = 0 To UBound(mRecipients)
-		      Dim address As String = "<" + mRecipients(i) + ">"
-		      recip = recip + address
-		      If i < UBound(mRecipients) Then recip = recip + ", "
-		    Next
-		    
-		    If mCCRecipients <> Nil Then
-		      For i As Integer = 0 To UBound(mCCRecipients)
-		        Dim address As String = "<" + mCCRecipients(i) + ">"
-		        cc = cc + address
-		        If i < UBound(mCCRecipients) Then cc = cc + ", "
-		      Next
-		    End If
-		    
-		    If mBCCRecipients <> Nil Then
-		      For i As Integer = 0 To UBound(mBCCRecipients)
-		        Dim address As String = "<" + mBCCRecipients(i) + ">"
-		        bcc = bcc + address
-		        If i < UBound(mBCCRecipients) Then bcc = bcc + ", "
-		      Next
-		    End If
-		  End If
+		  Dim msg As New EmailMessage
+		  msg.Subject = mSubject
+		  For i As Integer = 0 To UBound(mAttachments)
+		    Dim a As New EmailAttachment
+		    a.LoadFromFile(mAttachments(i))
+		    msg.Attachments.Append(a)
+		  Next
+		  msg.BodyPlainText = mMessageBody
+		  msg.FromAddress = SenderAddress
+		  For i As Integer = 0 To UBound(mHeaders)
+		    msg.Headers.AppendHeader(mHeaders(i).Left, mHeaders(i).Right)
+		  Next
 		  
-		  Dim message As New MemoryBlock(0)
-		  mMessageStream = New BinaryStream(message)
-		  mMessageStream.Write("Subject: " + mSubject + EndOfLine.Windows)
-		  mMessageStream.Write("From: " + mSenderAddress + EndOfLine.Windows)
-		  mMessageStream.Write("Date: " + libcURL.ParseDate(New Date) + EndOfLine.Windows)
+		  Dim data As MemoryBlock = msg.Source
+		  mMessageStream = New BinaryStream(data)
 		  
-		  If cc <> "" Then mMessageStream.Write("CC: " + cc + EndOfLine.Windows)
-		  If bcc <> "" Then mMessageStream.Write("BCC: " + bcc + EndOfLine.Windows)
-		  If recip <> "" Then mMessageStream.Write("To: " + recip + EndOfLine.Windows)
-		  
-		  mMessageStream.Write(EndOfLine.Windows)
-		  
-		  If UBound(mAttachments) > -1 Then
-		    Dim m As New libcURL.MultipartForm
-		    If Not m.AddElement("main", mMessageBody) Then Raise New libcURL.cURLException(m)
-		    For i As Integer = 0 To UBound(mAttachments)
-		      If Not m.AddElement(mAttachments(i).Name, mAttachments(i)) Then Raise New libcURL.cURLException(m)
-		    Next
-		    If Not m.Serialize(mMessageStream) Then Raise New libcURL.cURLException(m)
-		  Else
-		    mMessageStream.Write(mMessageBody + EndOfLine.Windows)
-		  End If
-		  mMessageStream.Close
-		  mMessageStream = New BinaryStream(message)
+		  'Dim cc, bcc, recip As String
+		  'If True Then ' for folding only
+		  'For i As Integer = 0 To UBound(mRecipients)
+		  'Dim address As String = "<" + mRecipients(i) + ">"
+		  'recip = recip + address
+		  'If i < UBound(mRecipients) Then recip = recip + ", "
+		  'Next
+		  '
+		  'If mCCRecipients <> Nil Then
+		  'For i As Integer = 0 To UBound(mCCRecipients)
+		  'Dim address As String = "<" + mCCRecipients(i) + ">"
+		  'cc = cc + address
+		  'If i < UBound(mCCRecipients) Then cc = cc + ", "
+		  'Next
+		  'End If
+		  '
+		  'If mBCCRecipients <> Nil Then
+		  'For i As Integer = 0 To UBound(mBCCRecipients)
+		  'Dim address As String = "<" + mBCCRecipients(i) + ">"
+		  'bcc = bcc + address
+		  'If i < UBound(mBCCRecipients) Then bcc = bcc + ", "
+		  'Next
+		  'End If
+		  'End If
+		  '
+		  'Dim message As New MemoryBlock(0)
+		  'mMessageStream = New BinaryStream(message)
+		  'mMessageStream.Write("Subject: " + mSubject + EndOfLine.Windows)
+		  'mMessageStream.Write("From: " + mSenderAddress + EndOfLine.Windows)
+		  'mMessageStream.Write("Date: " + libcURL.ParseDate(New Date) + EndOfLine.Windows)
+		  'For i As Integer = 0 To UBound(mHeaders)
+		  'mMessageStream.Write(mHeaders(i).Left + ": " + mHeaders(i).Right + EndOfLine.Windows)
+		  'Next
+		  'If cc <> "" Then mMessageStream.Write("CC: " + cc + EndOfLine.Windows)
+		  'If bcc <> "" Then mMessageStream.Write("BCC: " + bcc + EndOfLine.Windows)
+		  'If recip <> "" Then mMessageStream.Write("To: " + recip + EndOfLine.Windows)
+		  '
+		  'mMessageStream.Write(EndOfLine.Windows)
+		  '
+		  'If UBound(mAttachments) > -1 Then
+		  'Dim m As New libcURL.MultipartForm
+		  'If Not m.AddElement("main", mMessageBody) Then Raise New libcURL.cURLException(m)
+		  'For i As Integer = 0 To UBound(mAttachments)
+		  'If Not m.AddElement(mAttachments(i).Name, mAttachments(i)) Then Raise New libcURL.cURLException(m)
+		  'Next
+		  'If Not m.Serialize(mMessageStream) Then Raise New libcURL.cURLException(m)
+		  'Else
+		  'mMessageStream.Write(mMessageBody + EndOfLine.Windows)
+		  'End If
+		  'mMessageStream.Close
+		  'mMessageStream = New BinaryStream(message)
 		End Sub
 	#tag EndMethod
 
@@ -149,6 +172,7 @@ Inherits libcURL.EasyHandle
 		  ReDim mRecipients(-1)
 		  ReDim mBCCRecipients(-1)
 		  ReDim mCCRecipients(-1)
+		  ReDim mHeaders(-1)
 		  mMessageBody = ""
 		  mMessageStream = Nil
 		  mRecipList = New libcURL.ListPtr
@@ -173,6 +197,22 @@ Inherits libcURL.EasyHandle
 		End Sub
 	#tag EndMethod
 
+	#tag Method, Flags = &h0
+		Sub SetMessageHeader(Name As String, Value As String)
+		  For i As Integer = 0 To UBound(mHeaders)
+		    If mHeaders(i).Left = Name Then
+		      If mHeaders(i).Right = "" Then 
+		        mHeaders.Remove(i)
+		      Else
+		        mHeaders(i) = mHeaders(i).Left:Value
+		      End If
+		      Return
+		    End If
+		  Next
+		  mHeaders.Append(Name:Value)
+		End Sub
+	#tag EndMethod
+
 
 	#tag Property, Flags = &h1
 		Protected mAttachments() As FolderItem
@@ -184,6 +224,10 @@ Inherits libcURL.EasyHandle
 
 	#tag Property, Flags = &h1
 		Protected mCCRecipients() As String
+	#tag EndProperty
+
+	#tag Property, Flags = &h1
+		Protected mHeaders() As Pair
 	#tag EndProperty
 
 	#tag Property, Flags = &h1
