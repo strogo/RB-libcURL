@@ -84,11 +84,13 @@ Inherits libcURL.EasyHandle
 		    a.LoadFromFile(mAttachments(i))
 		    msg.Attachments.Append(a)
 		  Next
-		  msg.BodyPlainText = mMessageBody
-		  msg.FromAddress = SenderAddress
+		  If mMessageBody <> "" Then msg.BodyPlainText = mMessageBody
+		  If mRichTextBody <> Nil Then msg.BodyEnriched = mRichTextBody.RTFData
+		  If mHTMLBody <> "" Then msg.BodyHTML = mHTMLBody
 		  For i As Integer = 0 To UBound(mHeaders)
 		    msg.Headers.AppendHeader(mHeaders(i).Left, mHeaders(i).Right)
 		  Next
+		  msg.FromAddress = SenderAddress
 		  
 		  Dim data As MemoryBlock = msg.Source
 		  mMessageStream = New BinaryStream(data)
@@ -185,23 +187,10 @@ Inherits libcURL.EasyHandle
 	#tag EndMethod
 
 	#tag Method, Flags = &h0
-		Sub SetMessage(Subject As String, MessageBody As String)
-		  mSubject = Subject
-		  mMessageBody = MessageBody
-		End Sub
-	#tag EndMethod
-
-	#tag Method, Flags = &h0
-		Sub SetMessage(Subject As String, MessageBody As StyledText)
-		  Me.SetMessage(Subject, MessageBody.RTFData)
-		End Sub
-	#tag EndMethod
-
-	#tag Method, Flags = &h0
 		Sub SetMessageHeader(Name As String, Value As String)
 		  For i As Integer = 0 To UBound(mHeaders)
 		    If mHeaders(i).Left = Name Then
-		      If mHeaders(i).Right = "" Then 
+		      If mHeaders(i).Right = "" Then
 		        mHeaders.Remove(i)
 		      Else
 		        mHeaders(i) = mHeaders(i).Left:Value
@@ -210,6 +199,30 @@ Inherits libcURL.EasyHandle
 		    End If
 		  Next
 		  mHeaders.Append(Name:Value)
+		End Sub
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Sub SetMessageHTML(MessageBody As String)
+		  mHTMLBody = MessageBody
+		End Sub
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Sub SetMessagePlainText(MessageBody As String)
+		  mMessageBody = MessageBody
+		End Sub
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Sub SetMessageRichText(MessageBody As StyledText)
+		  mRichTextBody = MessageBody
+		End Sub
+	#tag EndMethod
+
+	#tag Method, Flags = &h0
+		Sub SetSubject(Subject As String)
+		  mSubject = Subject
 		End Sub
 	#tag EndMethod
 
@@ -230,6 +243,10 @@ Inherits libcURL.EasyHandle
 		Protected mHeaders() As Pair
 	#tag EndProperty
 
+	#tag Property, Flags = &h21
+		Private mHTMLBody As String
+	#tag EndProperty
+
 	#tag Property, Flags = &h1
 		Protected mMessageBody As String
 	#tag EndProperty
@@ -244,6 +261,10 @@ Inherits libcURL.EasyHandle
 
 	#tag Property, Flags = &h21
 		Private mRecipList As libcURL.ListPtr
+	#tag EndProperty
+
+	#tag Property, Flags = &h21
+		Private mRichTextBody As StyledText
 	#tag EndProperty
 
 	#tag Property, Flags = &h21
@@ -272,6 +293,54 @@ Inherits libcURL.EasyHandle
 
 	#tag ViewBehavior
 		#tag ViewProperty
+			Name="AutoDisconnect"
+			Group="Behavior"
+			Type="Boolean"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="AutoReferer"
+			Group="Behavior"
+			Type="Boolean"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="ConnectionTimeout"
+			Group="Behavior"
+			Type="Integer"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="FailOnServerError"
+			Group="Behavior"
+			Type="Boolean"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="FollowRedirects"
+			Group="Behavior"
+			Type="Boolean"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="HTTPCompression"
+			Group="Behavior"
+			Type="Boolean"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="HTTPPreserveMethod"
+			Group="Behavior"
+			Type="Boolean"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="HTTPVersion"
+			Group="Behavior"
+			Type="Integer"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
 			Name="Index"
 			Visible=true
 			Group="ID"
@@ -286,10 +355,53 @@ Inherits libcURL.EasyHandle
 			InheritedFrom="Object"
 		#tag EndViewProperty
 		#tag ViewProperty
+			Name="LocalPort"
+			Group="Behavior"
+			Type="Integer"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="MaxRedirects"
+			Group="Behavior"
+			Type="Integer"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
 			Name="Name"
 			Visible=true
 			Group="ID"
 			InheritedFrom="Object"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="Password"
+			Group="Behavior"
+			Type="String"
+			EditorType="MultiLineEditor"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="Port"
+			Group="Behavior"
+			Type="Integer"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="RemoteIP"
+			Group="Behavior"
+			Type="String"
+			EditorType="MultiLineEditor"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="Secure"
+			Group="Behavior"
+			Type="Boolean"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="SenderAddress"
+			Group="Behavior"
+			Type="String"
 		#tag EndViewProperty
 		#tag ViewProperty
 			Name="Super"
@@ -298,11 +410,56 @@ Inherits libcURL.EasyHandle
 			InheritedFrom="Object"
 		#tag EndViewProperty
 		#tag ViewProperty
+			Name="TimeOut"
+			Group="Behavior"
+			Type="Integer"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
 			Name="Top"
 			Visible=true
 			Group="Position"
 			InitialValue="0"
 			InheritedFrom="Object"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="UploadMode"
+			Group="Behavior"
+			Type="Boolean"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="URL"
+			Group="Behavior"
+			Type="String"
+			EditorType="MultiLineEditor"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="UseErrorBuffer"
+			Group="Behavior"
+			Type="Boolean"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="UserAgent"
+			Group="Behavior"
+			Type="String"
+			EditorType="MultiLineEditor"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="Username"
+			Group="Behavior"
+			Type="String"
+			EditorType="MultiLineEditor"
+			InheritedFrom="libcURL.EasyHandle"
+		#tag EndViewProperty
+		#tag ViewProperty
+			Name="Verbose"
+			Group="Behavior"
+			Type="Boolean"
+			InheritedFrom="libcURL.EasyHandle"
 		#tag EndViewProperty
 	#tag EndViewBehavior
 End Class
