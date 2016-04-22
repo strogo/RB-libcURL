@@ -440,13 +440,8 @@ Inherits libcURL.cURLHandle
 		      s = mb.StringValue(0, i)
 		    End If
 		    Return s
-		  ElseIf mLastError = libcURL.Errors.UNSUPPORTED_PROTOCOL Then ' no readable connection
-		    Return ""
 		  Else
-		    Dim err As New IOException
-		    err.ErrorNumber = Me.LastError
-		    err.Message = libcURL.FormatError(Me.LastError)
-		    Raise err
+		    Return ""
 		  End If
 		End Function
 	#tag EndMethod
