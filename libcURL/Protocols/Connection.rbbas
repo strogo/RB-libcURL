@@ -3,13 +3,6 @@ Protected Class Connection
 Inherits libcURL.EasyHandle
 Implements Readable, Writeable
 	#tag Event
-		Sub CreateSocket(Socket As Integer)
-		  '#pragma Unused Socket
-		  'Break
-		End Sub
-	#tag EndEvent
-
-	#tag Event
 		Function DataAvailable(NewData As MemoryBlock) As Integer
 		  Break
 		  Return NewData.Size
@@ -26,31 +19,6 @@ Implements Readable, Writeable
 	#tag EndEvent
 
 	#tag Event
-		Sub Disconnected(Socket As Integer)
-		  '#pragma Unused Socket
-		  'Break
-		End Sub
-	#tag EndEvent
-
-	#tag Event
-		Sub HeaderReceived(HeaderLine As String)
-		  '#pragma Unused HeaderLine
-		  'Break
-		End Sub
-	#tag EndEvent
-
-	#tag Event
-		Function Progress(dlTotal As UInt64, dlnow As UInt64, ultotal As UInt64, ulnow As UInt64) As Boolean
-		  '#pragma Unused dlTotal
-		  '#pragma Unused dlnow
-		  '#pragma Unused ultotal
-		  '#pragma Unused ulnow
-		  If ulnow > 0 Or dlnow > 0 Then Break
-		  'Return False
-		End Function
-	#tag EndEvent
-
-	#tag Event
 		Function SeekStream(Offset As Integer, Origin As Integer) As Boolean
 		  #pragma Unused Offset
 		  #pragma Unused Origin
@@ -60,18 +28,25 @@ Implements Readable, Writeable
 	#tag EndEvent
 
 
-	#tag Method, Flags = &h0
-		Function Connect() As Boolean
-		  Return Me.Perform()
-		  
-		End Function
-	#tag EndMethod
-
 	#tag Method, Flags = &h1000
 		Sub Constructor(GlobalInitFlags As Integer = libcURL.CURL_GLOBAL_DEFAULT)
 		  // Calling the overridden superclass constructor.
 		  // Constructor(GlobalInitFlags As Integer = libcURL.CURL_GLOBAL_DEFAULT) -- From EasyHandle
 		  Super.Constructor(GlobalInitFlags)
+		  If Not Me.SetOption(libcURL.Opts.CONNECT_ONLY, True) Then Raise New cURLException(Me)
+		  
+		End Sub
+	#tag EndMethod
+
+	#tag Method, Flags = &h1000
+		Sub Constructor(CopyOpts As libcURL.EasyHandle)
+		  // Calling the overridden superclass constructor.
+		  // Constructor(CopyOpts As libcURL.EasyHandle) -- From EasyHandle
+		  Super.Constructor(CopyOpts)
+		  If Not libcURL.Version.IsAtLeast(7, 15, 2) Then
+		    mLastError = libcURL.Errors.FEATURE_UNAVAILABLE
+		    Raise New libcURL.cURLException(Me)
+		  End If
 		  If Not Me.SetOption(libcURL.Opts.CONNECT_ONLY, True) Then Raise New cURLException(Me)
 		  
 		End Sub
@@ -91,8 +66,8 @@ Implements Readable, Writeable
 		End Sub
 	#tag EndMethod
 
-	#tag Method, Flags = &h1
-		Protected Function Perform(URL As String = "", Timeout As Integer = 0) As Boolean
+	#tag Method, Flags = &h0
+		Function Perform(URL As String = "", Timeout As Integer = 0) As Boolean
 		  mEOF = Not Super.Perform(URL, Timeout)
 		  Return Not mEOF
 		  
@@ -132,7 +107,14 @@ Implements Readable, Writeable
 		  // Part of the Writeable interface.
 		  Dim bs As New BinaryStream(text)
 		  While Not bs.EOF
-		    Dim c As Integer = Me.Write(bs.Read(Min(bs.Length - bs.Position, 1024 * 16)))
+		    Dim sz As Integer = Min(bs.Length - bs.Position, 1024 * 16)
+		    Dim c As Integer = Me.Write(bs.Read(sz))
+		    If c <> sz Then
+		      Dim err As New IOException
+		      err.ErrorNumber = Me.LastError
+		      err.Message = libcURL.FormatError(Me.LastError)
+		      Raise err
+		    End If
 		    App.YieldToNextThread
 		  Wend
 		End Sub
