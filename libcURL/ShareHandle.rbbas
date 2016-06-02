@@ -62,6 +62,12 @@ Inherits libcURL.cURLHandle
 		End Sub
 	#tag EndMethod
 
+	#tag Method, Flags = &h0
+		Function Count() As Integer
+		  Return SharedHandles.Count
+		End Function
+	#tag EndMethod
+
 	#tag DelegateDeclaration, Flags = &h21
 		Private Delegate Sub cURLLock(ShareItem As Integer, Data As curl_lock_data, Access As curl_lock_access, UserData As Integer)
 	#tag EndDelegateDeclaration

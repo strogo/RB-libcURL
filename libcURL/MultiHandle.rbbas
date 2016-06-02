@@ -375,8 +375,8 @@ Inherits libcURL.cURLHandle
 		HTTPPipelining As Boolean
 	#tag EndComputedProperty
 
-	#tag Property, Flags = &h21
-		Private Instances As Dictionary
+	#tag Property, Flags = &h1
+		Protected Instances As Dictionary
 	#tag EndProperty
 
 	#tag Property, Flags = &h21
